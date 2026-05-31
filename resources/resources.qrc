@@ -1,0 +1,8 @@
+<RCC>
+  <qresource prefix="/courierman">
+    <file alias="icons/logo_rounded.png">icons/logo_rounded.png</file>
+    <file alias="images/logo_full.png">images/logo_full.png</file>
+    <file alias="styles/courierman.qss">styles/courierman.qss</file>
+    <file alias="LICENSE">LICENSE</file>
+  </qresource>
+</RCC>

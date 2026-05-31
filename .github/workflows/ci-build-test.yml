@@ -1,0 +1,74 @@
+name: CI Build And Test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  xmake:
+    name: xmake ${{ matrix.os }} ${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            arch: x64
+          - os: windows-latest
+            arch: arm64
+          - os: macos-latest
+            arch: x86_64
+          - os: macos-latest
+            arch: arm64
+          - os: ubuntu-latest
+            arch: x86_64
+          - os: ubuntu-latest
+            arch: aarch64
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: xmake-io/github-action-setup-xmake@v1
+      - uses: jurplel/install-qt-action@v4
+        if: runner.os != 'Linux'
+        with:
+          version: "6.10.0"
+          modules: "qt5compat"
+      - name: Install Linux Qt
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qt6-base-dev qt6-base-dev-tools libgl1-mesa-dev
+      - name: Configure
+        run: xmake f -m debug --arch=${{ matrix.arch }} --toolchain=clang -y
+      - name: Build
+        run: xmake -y
+      - name: Test
+        run: xmake run courierman_tests
+
+  cmake:
+    name: CMake ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jurplel/install-qt-action@v4
+        if: runner.os != 'Linux'
+        with:
+          version: "6.10.0"
+          modules: "qt5compat"
+      - name: Install Linux Qt
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build qt6-base-dev qt6-base-dev-tools libgl1-mesa-dev
+      - name: Configure
+        run: cmake -S . -B build/cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug
+      - name: Build
+        run: cmake --build build/cmake
+      - name: Test
+        run: ctest --test-dir build/cmake --output-on-failure

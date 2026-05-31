@@ -1,0 +1,67 @@
+name: Release Publish
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build Release Artifacts
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: CourierMan-windows
+          - os: macos-latest
+            artifact: CourierMan-macos
+          - os: ubuntu-latest
+            artifact: CourierMan-linux
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: xmake-io/github-action-setup-xmake@v1
+      - uses: jurplel/install-qt-action@v4
+        if: runner.os != 'Linux'
+        with:
+          version: "6.10.0"
+          modules: "qt5compat"
+      - name: Install Linux Qt
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qt6-base-dev qt6-base-dev-tools libgl1-mesa-dev
+      - name: Configure
+        run: xmake f -m release --toolchain=clang -y
+      - name: Build
+        run: xmake -y
+      - name: Package
+        run: xmake package -y
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            build/**
+            dist/**
+
+  publish:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        with:
+          generate_release_notes: true
+          files: release-artifacts/**
