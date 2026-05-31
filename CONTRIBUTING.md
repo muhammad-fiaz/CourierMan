@@ -7,7 +7,9 @@ offline-first data ownership, readable C++ architecture, and respectful collabor
 
 - Use C++26 style with RAII, smart pointers, `std::optional`, `std::expected`,
   ranges where practical, and clear ownership.
-- Use xmake only. Do not introduce CMake.
+- On Windows, build and test with MSVC rather than a Clang-based toolchain.
+- On Windows, pair MSVC with a Qt MSVC SDK; a MinGW Qt install will not link.
+- Use xmake only.
 - Keep UI work in Qt Widgets. Do not add QML.
 - Keep layers separated:
   - `src/core` for paths, config, logging, errors, and cross-cutting services.

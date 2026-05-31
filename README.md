@@ -5,7 +5,6 @@
   <a href="https://isocpp.org/"><img src="https://img.shields.io/badge/C%2B%2B-26-blue.svg?logo=cplusplus" alt="C++26"></a>
   <a href="https://www.qt.io/"><img src="https://img.shields.io/badge/Qt-6.10%2B-41cd52.svg?logo=qt" alt="Qt 6"></a>
   <a href="https://xmake.io/"><img src="https://img.shields.io/badge/build-xmake-2f74c0.svg" alt="xmake"></a>
-  <a href="https://cmake.org/"><img src="https://img.shields.io/badge/build-CMake-064f8c.svg?logo=cmake" alt="CMake"></a>
   <a href="https://github.com/muhammad-fiaz/CourierMan"><img src="https://img.shields.io/github/stars/muhammad-fiaz/CourierMan" alt="GitHub stars"></a>
   <a href="https://github.com/muhammad-fiaz/CourierMan/issues"><img src="https://img.shields.io/github/issues/muhammad-fiaz/CourierMan" alt="GitHub issues"></a>
   <a href="https://github.com/muhammad-fiaz/CourierMan/pulls"><img src="https://img.shields.io/github/issues-pr/muhammad-fiaz/CourierMan" alt="GitHub pull requests"></a>
@@ -43,7 +42,7 @@ schema tooling, update checks, GitHub reporting, and AI-assisted documentation a
 This repository now contains the Phase 1 production foundation:
 
 - xmake-based C++26/Qt 6 project configuration.
-- CMake build parity for environments that need it.
+- Single xmake build configuration for app, tests, CI, and release packaging.
 - Native Qt Widgets application shell with a custom title bar and app menus.
 - Offline-first configuration paths using `QStandardPaths`.
 - TOML configuration loading and saving via tomlplusplus.
@@ -79,20 +78,12 @@ CourierMan is designed around these modules:
 ### xmake
 
 ```powershell
-xmake f -m debug --toolchain=clang --qt=C:\Qt\6.11.1\mingw_64
-xmake
+xmake f -y -m debug
+xmake -y
 xmake run CourierMan
 ```
 
-### CMake
-
-```powershell
-cmake -S . -B build/cmake -DCMAKE_BUILD_TYPE=Debug
-cmake --build build/cmake --config Debug
-ctest --test-dir build/cmake --output-on-failure
-```
-
-The CI matrix builds Windows, macOS, and Linux targets with xmake and CMake, then keeps
+The CI matrix builds Windows, macOS, and Linux targets with xmake, then keeps
 release automation in GitHub Actions.
 
 ## Developer

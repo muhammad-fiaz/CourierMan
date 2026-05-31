@@ -8,6 +8,7 @@
 #include <QFile>
 #include <QMessageBox>
 #include <QThreadPool>
+#include <QTimer>
 
 #include <memory>
 
@@ -47,6 +48,10 @@ int main(int argc, char* argv[]) {
 
     courierman::ui::MainWindow window(&configManager, *settings);
     window.show();
+
+    if (qEnvironmentVariableIsSet("COURIERMAN_SMOKE_TEST")) {
+        QTimer::singleShot(0, &app, &QCoreApplication::quit);
+    }
 
     const int result = QApplication::exec();
     courierman::core::Logger::shutdown();

@@ -6,6 +6,8 @@ set_xmakever("2.9.8")
 add_rules("mode.debug", "mode.release", "mode.releasedbg")
 set_languages("c++latest")
 
+includes("@builtin/qt")
+
 option("with_protocol_extras")
 set_default(false)
 set_showmenu(true)
@@ -13,24 +15,19 @@ set_description("Enable optional gRPC, MQTT, Socket.IO, and libcurl protocol pac
 option_end()
 
 if is_plat("windows") then
-    set_toolchains("clang-cl")
-    add_cxxflags("/std:c++latest", "/permissive-", "/Zc:__cplusplus", { tools = { "clang_cl", "cl" } })
-elseif is_plat("linux", "macosx") then
-    set_toolchains("clang")
-    add_cxxflags("-std=c++2c", "-Wall", "-Wextra", "-Wpedantic", { tools = { "clang", "gcc" } })
+    set_toolchains("msvc")
+    add_cxxflags("/std:c++latest", "/permissive-", "/Zc:__cplusplus", { tools = { "cl" } })
+else
+    add_cxxflags("-std=c++2c", "-Wall", "-Wextra", "-Wpedantic")
 end
 
-add_requires("qt6widgets", { system = true })
-add_requires("qt6network", { system = true })
-add_requires("qt6sql", { system = true })
-add_requires("qt6concurrent", { system = true })
-add_requires("spdlog", { configs = { header_only = false } })
-add_requires("tomlplusplus")
-add_requires("nlohmann_json")
-add_requires("gtest")
+add_requires("spdlog", { configs = { header_only = false }, system = false })
+add_requires("toml++", { system = false })
+add_requires("nlohmann_json", { system = false })
+add_requires("gtest", { system = false })
 
 if has_config("with_protocol_extras") then
-    add_requires("grpc", "protobuf-cpp", "paho-mqtt-cpp", "curl")
+    add_requires("grpc", "protobuf-cpp", "paho-mqtt-cpp", "curl", { system = false })
 end
 
 local source_files = {
@@ -59,12 +56,12 @@ local header_files = {
 target("CourierMan")
 set_kind("binary")
 add_rules("qt.widgetapp")
+add_frameworks("QtNetwork", "QtSql", "QtConcurrent")
 add_files(source_files)
 add_files(header_files)
 add_files("resources/resources.qrc")
 add_includedirs("src", { public = true })
-add_packages("qt6widgets", "qt6network", "qt6sql", "qt6concurrent")
-add_packages("spdlog", "tomlplusplus", "nlohmann_json")
+add_packages("spdlog", "toml++", "nlohmann_json")
 if has_config("with_protocol_extras") then
     add_packages("grpc", "protobuf-cpp", "paho-mqtt-cpp", "curl")
     add_defines("COURIERMAN_WITH_PROTOCOL_EXTRAS")
@@ -78,20 +75,16 @@ target_end()
 target("courierman_tests")
 set_kind("binary")
 add_rules("qt.console")
+add_frameworks("QtNetwork", "QtSql", "QtConcurrent")
 add_files("src/core/*.h")
 add_files("src/backend/common/*.h")
 add_files("src/backend/database/*.h")
+add_files("tests/main.cpp")
 add_files("tests/**/*.cpp")
 add_files("src/core/*.cpp")
 add_files("src/backend/common/*.cpp")
 add_files("src/backend/database/*.cpp")
 add_includedirs("src", { public = true })
-add_packages("qt6widgets", "qt6network", "qt6sql", "qt6concurrent")
-add_packages("spdlog", "tomlplusplus", "nlohmann_json", "gtest")
+add_packages("spdlog", "toml++", "nlohmann_json", "gtest")
 add_defines("COURIERMAN_TESTING", "COURIERMAN_VERSION=\"1.0.0\"")
 target_end()
-
-package("CourierMan")
-set_kind("binary")
-add_targets("CourierMan")
-package_end()

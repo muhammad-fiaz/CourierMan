@@ -2,35 +2,26 @@
 
 ## Requirements
 
-- C++ compiler with C++26 or latest draft support.
+- MSVC on Windows, or a C++26-or-later compiler on macOS/Linux.
 - xmake.
-- CMake 3.28 or newer.
-- Ninja for the CMake presets.
 - Qt 6.10 or newer with Widgets, Network, SQL, Concurrent, and Test modules.
 - SQLite Qt driver.
 
-On this Windows development host, LLVM/Clang and Qt are expected to be installed
-globally. The xmake configuration prefers Clang and uses Qt from the system when
-available.
+On Windows, xmake auto-detects the Qt SDK from `QT_ROOT_DIR` or the standard
+`C:\Qt\6.10.3\msvc2022_64` install path.
 
 ## Configure
 
 ### xmake
 
 ```powershell
-xmake f -m debug --toolchain=clang --qt=C:\Qt\6.11.1\mingw_64
+xmake f -y -m debug
 ```
 
 For release:
 
 ```powershell
-xmake f -m release --toolchain=clang --qt=C:\Qt\6.11.1\mingw_64
-```
-
-### CMake
-
-```powershell
-cmake --preset debug
+xmake f -y -m release
 ```
 
 ## Build And Run
@@ -38,15 +29,8 @@ cmake --preset debug
 ### xmake
 
 ```powershell
-xmake
+xmake -y
 xmake run CourierMan
-```
-
-### CMake
-
-```powershell
-cmake --build --preset debug
-.\build\cmake-debug\CourierMan.exe
 ```
 
 ## Tests
@@ -56,12 +40,6 @@ cmake --build --preset debug
 ```powershell
 xmake build courierman_tests
 xmake run courierman_tests
-```
-
-### CMake
-
-```powershell
-ctest --preset debug
 ```
 
 ## Cross Compilation Notes
