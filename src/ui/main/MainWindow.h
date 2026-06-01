@@ -41,6 +41,8 @@ private slots:
     void showUpdateDialog();
     void openWebsite();
     void openReleaseNotes();
+    void importRequest();
+    void exportRequest();
     void forceQuit();
 
 private:
@@ -79,6 +81,7 @@ private:
     QPlainTextEdit* m_responseHeaders{nullptr};
     QPlainTextEdit* m_console{nullptr};
     QPlainTextEdit* m_codeSnippet{nullptr};
+    QComboBox* m_snippetLanguage{nullptr};
     QLabel* m_status{nullptr};
     QLabel* m_stats{nullptr};
     QSystemTrayIcon* m_trayIcon{nullptr};

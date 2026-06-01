@@ -119,6 +119,17 @@ core::Result<QString> SnippetGenerator::generate(const RequestDefinition& reques
     if (lang == "php") {
         return QStringLiteral("$response = file_get_contents(\"%1\");").arg(escaped(url));
     }
+    if (lang == "ruby") {
+        return QStringLiteral(
+                   "require 'net/http'\n"
+                   "uri = URI('%1')\n"
+                   "request = Net::HTTP::%2.new(uri)%3\n"
+                   "response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == 'https') { |http| http.request(request) }\n"
+                   "puts response.body")
+            .arg(escaped(url),
+                 method.at(0) + method.mid(1).toLower(),
+                 body.isEmpty() ? QString{} : QStringLiteral("\nrequest.body = '%1'").arg(escaped(body)));
+    }
     if (lang == "java") {
         return QStringLiteral(
                    "HttpRequest request = HttpRequest.newBuilder()\n"
@@ -179,6 +190,28 @@ core::Result<QString> SnippetGenerator::generate(const RequestDefinition& reques
                    "cpr::Response response = cpr::CustomMethod{\n"
                    "    cpr::Url{\"%1\"}, cpr::Body{\"%2\"}, cpr::Header{{\"Accept\", \"application/json\"}}, \"%3\"};")
             .arg(escaped(url), escaped(body), method);
+    }
+    if (lang == "objective-c") {
+        return QStringLiteral(
+                   "NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@\"%1\"]];\n"
+                   "[request setHTTPMethod:@\"%2\"];\n"
+                   "[request setHTTPBody:[@\"%3\" dataUsingEncoding:NSUTF8StringEncoding]];\n"
+                   "NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:request];\n"
+                   "[task resume];")
+            .arg(escaped(url), method, escaped(body));
+    }
+    if (lang == "perl") {
+        return QStringLiteral(
+                   "use HTTP::Tiny;\n"
+                   "my $response = HTTP::Tiny->new->request('%1', '%2', { content => '%3' });\n"
+                   "print $response->{content};")
+            .arg(method, escaped(url), escaped(body));
+    }
+    if (lang == "r") {
+        return QStringLiteral(
+                   "response <- httr::VERB(\"%1\", \"%2\", body = \"%3\")\n"
+                   "cat(httr::content(response, as = \"text\"))")
+            .arg(method, escaped(url), escaped(body));
     }
 
     return std::unexpected(QStringLiteral("Unsupported snippet language: %1").arg(language));

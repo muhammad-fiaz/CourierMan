@@ -42,13 +42,8 @@ xmake build courierman_tests
 xmake run courierman_tests
 ```
 
-## Cross Compilation Notes
+## Platform Notes
 
-The root `xmake.lua` defines platform options for:
-
-- Windows x64 and ARM64.
-- macOS x86_64 and aarch64.
-- Linux x86_64 and aarch64.
-
-Use the appropriate Qt SDK for the target architecture and pass `--arch=` through
-xmake when configuring.
+The GitHub Actions pipeline builds native Windows, macOS, and Linux packages with
+xmake. Cross-compilation is possible when a matching Qt SDK is installed for the
+target architecture; do not mix x64 Qt libraries with ARM64 builds.

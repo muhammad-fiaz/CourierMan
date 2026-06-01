@@ -4,8 +4,10 @@
 #include "ui/shared_widgets/HoverButton.h"
 
 #include <QFormLayout>
+#include <QFrame>
 #include <QHBoxLayout>
 #include <QMessageBox>
+#include <QScrollArea>
 #include <QVBoxLayout>
 
 namespace courierman::ui {
@@ -49,8 +51,9 @@ void SettingsView::buildUi() {
     root->setContentsMargins(0, 0, 0, 0);
 
     auto* nav = new QWidget(this);
-    nav->setFixedWidth(210);
-    nav->setStyleSheet(QStringLiteral("background: #ffffff; border-right: 1px solid #d7dee8;"));
+    nav->setObjectName(QStringLiteral("settingsNav"));
+    nav->setMinimumWidth(190);
+    nav->setMaximumWidth(260);
     auto* navLayout = new QVBoxLayout(nav);
     navLayout->setContentsMargins(14, 18, 14, 14);
     navLayout->setSpacing(8);
@@ -73,12 +76,13 @@ void SettingsView::buildUi() {
     root->addWidget(nav);
 
     auto* content = new QWidget(this);
+    content->setObjectName(QStringLiteral("settingsContent"));
     auto* contentLayout = new QVBoxLayout(content);
-    contentLayout->setContentsMargins(28, 22, 28, 22);
+    contentLayout->setContentsMargins(24, 20, 24, 20);
     contentLayout->setSpacing(16);
 
     m_title = new QLabel(QStringLiteral("Settings"), content);
-    m_title->setStyleSheet(QStringLiteral("font-size: 24px; font-weight: 700; color: #0f172a;"));
+    m_title->setObjectName(QStringLiteral("settingsTitle"));
     contentLayout->addWidget(m_title);
 
     m_pages = new QStackedWidget(content);
@@ -92,7 +96,12 @@ void SettingsView::buildUi() {
     m_pages->addWidget(buildPrivacyPage());
     m_pages->addWidget(buildAiPage());
     m_pages->addWidget(buildAdvancedPage());
-    contentLayout->addWidget(m_pages, 1);
+
+    auto* scroll = new QScrollArea(content);
+    scroll->setWidgetResizable(true);
+    scroll->setFrameShape(QFrame::NoFrame);
+    scroll->setWidget(m_pages);
+    contentLayout->addWidget(scroll, 1);
 
     auto* actions = new QHBoxLayout();
     actions->addStretch(1);

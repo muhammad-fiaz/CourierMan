@@ -12,7 +12,6 @@
   <a href="https://github.com/muhammad-fiaz/CourierMan"><img src="https://img.shields.io/github/license/muhammad-fiaz/CourierMan" alt="License"></a>
   <a href="https://github.com/muhammad-fiaz/CourierMan/actions/workflows/ci-build-test.yml"><img src="https://github.com/muhammad-fiaz/CourierMan/actions/workflows/ci-build-test.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/platforms-linux%20%7C%20windows%20%7C%20macos-blue" alt="Supported Platforms">
-  <a href="https://github.com/muhammad-fiaz/CourierMan/actions/workflows/codeql.yml"><img src="https://github.com/muhammad-fiaz/CourierMan/actions/workflows/codeql.yml/badge.svg" alt="CodeQL"></a>
   <a href="https://github.com/muhammad-fiaz/CourierMan/actions/workflows/release-publish.yml"><img src="https://github.com/muhammad-fiaz/CourierMan/actions/workflows/release-publish.yml/badge.svg" alt="Release"></a>
   <a href="https://github.com/muhammad-fiaz/CourierMan/releases/latest"><img src="https://img.shields.io/github/v/release/muhammad-fiaz/CourierMan?label=Latest%20Release&style=flat-square" alt="Latest Release"></a>
   <a href="https://pay.muhammadfiaz.com"><img src="https://img.shields.io/badge/Sponsor-pay.muhammadfiaz.com-ff69b4?style=flat&logo=heart" alt="Sponsor"></a>
@@ -53,7 +52,7 @@ This repository now contains the Phase 1 production foundation:
 - Cross-platform autostart integration surface.
 - Full-page settings view inside the main window.
 - Update checker popup with live progress for GitHub Releases downloads.
-- GitHub ownership, funding, CodeQL, and release automation metadata.
+- GitHub ownership, funding, and release automation metadata.
 - Feature catalog covering free and traditionally paid API-client capabilities.
 - Docker, NSIS installer, GitHub Actions, and contribution/security docs.
 
@@ -78,13 +77,14 @@ CourierMan is designed around these modules:
 ### xmake
 
 ```powershell
-xmake f -y -m debug
+xmake f -y -m release
 xmake -y
 xmake run CourierMan
 ```
 
-The CI matrix builds Windows, macOS, and Linux targets with xmake, then keeps
-release automation in GitHub Actions.
+The CI matrix builds native Windows, macOS, and Linux targets with xmake, then
+keeps release automation in GitHub Actions. Use a Qt SDK that matches your
+compiler family, such as MSVC Qt with MSVC or MinGW Qt with MinGW.
 
 ## Developer
 

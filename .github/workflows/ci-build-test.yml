@@ -7,24 +7,12 @@ on:
 
 jobs:
   xmake:
-    name: xmake ${{ matrix.os }} ${{ matrix.arch }}
+    name: xmake ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: windows-latest
-            arch: x64
-          - os: windows-latest
-            arch: arm64
-          - os: macos-latest
-            arch: x86_64
-          - os: macos-latest
-            arch: arm64
-          - os: ubuntu-latest
-            arch: x86_64
-          - os: ubuntu-latest
-            arch: aarch64
+        os: [windows-latest, macos-latest, ubuntu-latest]
 
     steps:
       - uses: actions/checkout@v5
@@ -36,7 +24,7 @@ jobs:
       - uses: jurplel/install-qt-action@v4
         if: runner.os != 'Linux'
         with:
-          version: "6.10.3"
+          version: "6.11.1"
           modules: "qt5compat"
       - name: Install Linux Qt
         if: runner.os == 'Linux'
@@ -45,10 +33,10 @@ jobs:
           sudo apt-get install -y qt6-base-dev qt6-base-dev-tools libgl1-mesa-dev
       - name: Configure Qt-backed platforms
         if: runner.os != 'Linux'
-        run: xmake f -m debug --arch=${{ matrix.arch }} --qt=${{ env.QT_ROOT_DIR }} -y
+        run: xmake f -m release --qt=${{ env.QT_ROOT_DIR }} -y
       - name: Configure Linux
         if: runner.os == 'Linux'
-        run: xmake f -m debug --arch=${{ matrix.arch }} -y
+        run: xmake f -m release -y
       - name: Build
         run: xmake -y
       - name: Run App

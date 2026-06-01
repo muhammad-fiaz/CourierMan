@@ -7,6 +7,7 @@
 #include <QHBoxLayout>
 #include <QIcon>
 #include <QMenu>
+#include <QSizePolicy>
 #include <QStyle>
 #include <QUrl>
 
@@ -16,72 +17,69 @@ TitleBar::TitleBar(QWidget* hostWindow, QWidget* parent)
     : QWidget(parent)
     , m_hostWindow(hostWindow) {
     setObjectName(QStringLiteral("titleBar"));
-    setFixedHeight(50);
-    setStyleSheet(QStringLiteral(
-        "QWidget#titleBar { background: #ffffff; border-bottom: 1px solid #d7dee8; }"
-        "QLabel#titleText { font-size: 18px; font-weight: 700; color: #0f172a; }"
-        "QPushButton#windowButton { border: 0; border-radius: 5px; padding: 5px 9px; }"
-        "QPushButton#windowButton:hover { background: #edf3f8; }"
-        "QPushButton#closeButton { border: 0; border-radius: 5px; padding: 5px 9px; }"
-        "QPushButton#closeButton:hover { background: #fee2e2; color: #991b1b; }"));
+    setMinimumHeight(44);
+    setMaximumHeight(50);
 
     auto* layout = new QHBoxLayout(this);
-    layout->setContentsMargins(12, 0, 10, 0);
-    layout->setSpacing(10);
+    layout->setContentsMargins(10, 0, 12, 0);
+    layout->setSpacing(8);
+
+    auto* leftCluster = new QWidget(this);
+    leftCluster->setObjectName(QStringLiteral("titleLeftCluster"));
+    auto* leftLayout = new QHBoxLayout(leftCluster);
+    leftLayout->setContentsMargins(0, 0, 0, 0);
+    leftLayout->setSpacing(8);
 
     auto* logo = new QLabel(this);
-    logo->setPixmap(QIcon(QStringLiteral(":/courierman/icons/logo_rounded.png")).pixmap(30, 30));
-    layout->addWidget(logo);
-
-    auto* title = new QLabel(QStringLiteral("CourierMan"), this);
-    title->setObjectName(QStringLiteral("titleText"));
-    layout->addWidget(title);
+    logo->setObjectName(QStringLiteral("titleLogo"));
+    logo->setPixmap(QIcon(QStringLiteral(":/courierman/icons/logo_rounded.png")).pixmap(24, 24));
+    leftLayout->addWidget(logo);
 
     m_menuBar = new QMenuBar(this);
     m_menuBar->setNativeMenuBar(false);
+    m_menuBar->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
     buildMenus();
-    layout->addWidget(m_menuBar);
+    leftLayout->addWidget(m_menuBar);
+    layout->addWidget(leftCluster, 1);
 
-    layout->addStretch(1);
+    auto* title = new QLabel(QStringLiteral("CourierMan"), this);
+    title->setObjectName(QStringLiteral("centerTitleText"));
+    title->setAlignment(Qt::AlignCenter);
+    layout->addWidget(title, 1);
+
+    auto* rightCluster = new QWidget(this);
+    rightCluster->setObjectName(QStringLiteral("titleRightCluster"));
+    auto* rightLayout = new QHBoxLayout(rightCluster);
+    rightLayout->setContentsMargins(0, 0, 0, 0);
+    rightLayout->setSpacing(8);
 
     auto* envLabel = new QLabel(QStringLiteral("Environment"), this);
-    envLabel->setStyleSheet(QStringLiteral("color: #64748b; font-size: 12px;"));
-    layout->addWidget(envLabel);
+    envLabel->setObjectName(QStringLiteral("mutedLabel"));
+    rightLayout->addWidget(envLabel);
 
     m_environmentSelector = new QComboBox(this);
     m_environmentSelector->addItems({QStringLiteral("Local"), QStringLiteral("Staging"), QStringLiteral("Production")});
     m_environmentSelector->setMinimumWidth(160);
-    layout->addWidget(m_environmentSelector);
+    rightLayout->addWidget(m_environmentSelector);
 
-    auto* leftToggle = new HoverButton(QStringLiteral("Left"), this);
+    auto* leftToggle = new HoverButton(QStringLiteral("L"), this);
+    leftToggle->setObjectName(QStringLiteral("panelToggle"));
     leftToggle->setToolTip(QStringLiteral("Toggle left sidebar"));
     connect(leftToggle, &QPushButton::clicked, this, &TitleBar::toggleLeftRequested);
-    layout->addWidget(leftToggle);
+    rightLayout->addWidget(leftToggle);
 
-    auto* rightToggle = new HoverButton(QStringLiteral("Right"), this);
+    auto* rightToggle = new HoverButton(QStringLiteral("R"), this);
+    rightToggle->setObjectName(QStringLiteral("panelToggle"));
     rightToggle->setToolTip(QStringLiteral("Toggle right sidebar"));
     connect(rightToggle, &QPushButton::clicked, this, &TitleBar::toggleRightRequested);
-    layout->addWidget(rightToggle);
+    rightLayout->addWidget(rightToggle);
 
-    auto* bottomToggle = new HoverButton(QStringLiteral("Console"), this);
+    auto* bottomToggle = new HoverButton(QStringLiteral("C"), this);
+    bottomToggle->setObjectName(QStringLiteral("panelToggle"));
     bottomToggle->setToolTip(QStringLiteral("Toggle bottom console"));
     connect(bottomToggle, &QPushButton::clicked, this, &TitleBar::toggleBottomRequested);
-    layout->addWidget(bottomToggle);
-
-    auto* minimize = new QPushButton(QStringLiteral("-"), this);
-    minimize->setObjectName(QStringLiteral("windowButton"));
-    connect(minimize, &QPushButton::clicked, m_hostWindow, &QWidget::showMinimized);
-    layout->addWidget(minimize);
-
-    auto* maximize = new QPushButton(QStringLiteral("[]"), this);
-    maximize->setObjectName(QStringLiteral("windowButton"));
-    connect(maximize, &QPushButton::clicked, this, &TitleBar::toggleMaximized);
-    layout->addWidget(maximize);
-
-    auto* close = new QPushButton(QStringLiteral("X"), this);
-    close->setObjectName(QStringLiteral("closeButton"));
-    connect(close, &QPushButton::clicked, m_hostWindow, &QWidget::close);
-    layout->addWidget(close);
+    rightLayout->addWidget(bottomToggle);
+    layout->addWidget(rightCluster, 1);
 }
 
 QComboBox* TitleBar::environmentSelector() const {
@@ -117,35 +115,6 @@ void TitleBar::buildMenus() {
     help->addAction(QStringLiteral("Release Notes"), this, &TitleBar::releaseNotesRequested);
     help->addAction(QStringLiteral("Report Issue"), this, &TitleBar::issueReportRequested);
     help->addAction(QStringLiteral("Check For Updates"), this, &TitleBar::updateRequested);
-}
-
-void TitleBar::mousePressEvent(QMouseEvent* event) {
-    if (event->button() == Qt::LeftButton) {
-        m_dragStart = event->globalPosition().toPoint() - m_hostWindow->frameGeometry().topLeft();
-        event->accept();
-    }
-}
-
-void TitleBar::mouseMoveEvent(QMouseEvent* event) {
-    if ((event->buttons() & Qt::LeftButton) != 0 && !m_dragStart.isNull() && !m_hostWindow->isMaximized()) {
-        m_hostWindow->move(event->globalPosition().toPoint() - m_dragStart);
-        event->accept();
-    }
-}
-
-void TitleBar::mouseDoubleClickEvent(QMouseEvent* event) {
-    if (event->button() == Qt::LeftButton) {
-        toggleMaximized();
-        event->accept();
-    }
-}
-
-void TitleBar::toggleMaximized() {
-    if (m_hostWindow->isMaximized()) {
-        m_hostWindow->showNormal();
-    } else {
-        m_hostWindow->showMaximized();
-    }
 }
 
 }  // namespace courierman::ui

@@ -3,7 +3,6 @@
 #include <QComboBox>
 #include <QLabel>
 #include <QMenuBar>
-#include <QMouseEvent>
 #include <QWidget>
 
 namespace courierman::ui {
@@ -30,19 +29,12 @@ signals:
     void toggleRightRequested();
     void toggleBottomRequested();
 
-protected:
-    void mousePressEvent(QMouseEvent* event) override;
-    void mouseMoveEvent(QMouseEvent* event) override;
-    void mouseDoubleClickEvent(QMouseEvent* event) override;
-
 private:
     void buildMenus();
-    void toggleMaximized();
 
     QWidget* m_hostWindow;
     QMenuBar* m_menuBar{nullptr};
     QComboBox* m_environmentSelector{nullptr};
-    QPoint m_dragStart;
 };
 
 }  // namespace courierman::ui

@@ -9,13 +9,18 @@
 #include "ui/shared_widgets/ThemeManager.h"
 
 #include <QApplication>
+#include <QAbstractItemView>
 #include <QDateTime>
 #include <QDesktopServices>
+#include <QFile>
+#include <QFileDialog>
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QIcon>
+#include <QJsonArray>
 #include <QJsonDocument>
+#include <QJsonObject>
 #include <QJsonParseError>
 #include <QListWidget>
 #include <QMenu>
@@ -34,7 +39,7 @@ namespace {
 
 [[nodiscard]] QLabel* sectionTitle(const QString& text, QWidget* parent) {
     auto* label = new QLabel(text, parent);
-    label->setStyleSheet(QStringLiteral("font-size: 14px; font-weight: 700; color: #0f172a;"));
+    label->setObjectName(QStringLiteral("sectionTitle"));
     return label;
 }
 
@@ -42,8 +47,13 @@ void prepareKeyValueTable(QTableWidget* table) {
     table->setColumnCount(3);
     table->setHorizontalHeaderLabels({QStringLiteral("Enabled"), QStringLiteral("Key"), QStringLiteral("Value")});
     table->horizontalHeader()->setStretchLastSection(true);
+    table->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Interactive);
     table->verticalHeader()->setVisible(false);
     table->setAlternatingRowColors(true);
+    table->setSelectionBehavior(QAbstractItemView::SelectRows);
+    table->setSelectionMode(QAbstractItemView::SingleSelection);
+    table->setShowGrid(false);
     table->setRowCount(4);
     for (int row = 0; row < table->rowCount(); ++row) {
         auto* enabled = new QTableWidgetItem();
@@ -63,6 +73,28 @@ void prepareKeyValueTable(QTableWidget* table) {
     return QString::fromUtf8(bytes);
 }
 
+[[nodiscard]] QJsonArray keyValuesToJson(const QList<backend::KeyValue>& values) {
+    QJsonArray array;
+    for (const auto& value : values) {
+        array.append(QJsonObject{{QStringLiteral("key"), value.key},
+                                 {QStringLiteral("value"), value.value},
+                                 {QStringLiteral("enabled"), value.enabled}});
+    }
+    return array;
+}
+
+void populateKeyValueTable(QTableWidget* table, const QJsonArray& values) {
+    table->setRowCount(qMax(4, values.size()));
+    for (int row = 0; row < table->rowCount(); ++row) {
+        const QJsonObject object = row < values.size() ? values.at(row).toObject() : QJsonObject{};
+        auto* enabled = new QTableWidgetItem();
+        enabled->setCheckState(object.value(QStringLiteral("enabled")).toBool(row == 0) ? Qt::Checked : Qt::Unchecked);
+        table->setItem(row, 0, enabled);
+        table->setItem(row, 1, new QTableWidgetItem(object.value(QStringLiteral("key")).toString()));
+        table->setItem(row, 2, new QTableWidgetItem(object.value(QStringLiteral("value")).toString()));
+    }
+}
+
 }  // namespace
 
 MainWindow::MainWindow(core::ConfigManager* configManager,
@@ -80,10 +112,10 @@ MainWindow::MainWindow(core::ConfigManager* configManager,
 void MainWindow::buildUi() {
     setWindowTitle(QStringLiteral("CourierMan"));
     setWindowIcon(QIcon(QStringLiteral(":/courierman/icons/logo_rounded.png")));
-    setWindowFlag(Qt::FramelessWindowHint, true);
     resize(1440, 900);
 
     auto* root = new QWidget(this);
+    root->setObjectName(QStringLiteral("appRoot"));
     auto* rootLayout = new QVBoxLayout(root);
     rootLayout->setContentsMargins(0, 0, 0, 0);
     rootLayout->setSpacing(0);
@@ -107,15 +139,19 @@ void MainWindow::buildUi() {
 
 QWidget* MainWindow::buildWorkspacePage() {
     auto* workspace = new QWidget(this);
+    workspace->setObjectName(QStringLiteral("workspacePage"));
     auto* layout = new QVBoxLayout(workspace);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
 
     auto* horizontal = new QSplitter(Qt::Horizontal, workspace);
+    horizontal->setChildrenCollapsible(true);
     m_leftPanel = buildLeftSidebar();
     m_rightPanel = buildRightSidebar();
 
     auto* center = new QSplitter(Qt::Vertical, workspace);
+    center->setObjectName(QStringLiteral("centerSurface"));
+    center->setChildrenCollapsible(true);
     center->addWidget(buildRequestEditor());
     center->addWidget(buildResponseViewer());
     m_bottomPanel = buildBottomBar();
@@ -133,7 +169,9 @@ QWidget* MainWindow::buildWorkspacePage() {
 
 QWidget* MainWindow::buildLeftSidebar() {
     auto* panel = new QWidget(this);
-    panel->setMinimumWidth(220);
+    panel->setObjectName(QStringLiteral("leftPanel"));
+    panel->setMinimumWidth(190);
+    panel->setMaximumWidth(360);
     auto* layout = new QVBoxLayout(panel);
     layout->setContentsMargins(12, 12, 12, 12);
     layout->setSpacing(10);
@@ -172,6 +210,7 @@ QWidget* MainWindow::buildLeftSidebar() {
 
 QWidget* MainWindow::buildRequestEditor() {
     auto* editor = new QWidget(this);
+    editor->setObjectName(QStringLiteral("centerSurface"));
     auto* layout = new QVBoxLayout(editor);
     layout->setContentsMargins(12, 12, 12, 8);
     layout->setSpacing(10);
@@ -225,6 +264,7 @@ QWidget* MainWindow::buildRequestEditor() {
 
 QWidget* MainWindow::buildResponseViewer() {
     auto* viewer = new QWidget(this);
+    viewer->setObjectName(QStringLiteral("centerSurface"));
     auto* layout = new QVBoxLayout(viewer);
     layout->setContentsMargins(12, 4, 12, 8);
     layout->addWidget(sectionTitle(QStringLiteral("Response"), viewer));
@@ -245,7 +285,9 @@ QWidget* MainWindow::buildResponseViewer() {
 
 QWidget* MainWindow::buildRightSidebar() {
     auto* panel = new QWidget(this);
-    panel->setMinimumWidth(260);
+    panel->setObjectName(QStringLiteral("rightPanel"));
+    panel->setMinimumWidth(230);
+    panel->setMaximumWidth(420);
     auto* layout = new QVBoxLayout(panel);
     layout->setContentsMargins(12, 12, 12, 12);
 
@@ -258,13 +300,13 @@ QWidget* MainWindow::buildRightSidebar() {
 
     auto* code = new QWidget(tabs);
     auto* codeLayout = new QVBoxLayout(code);
-    auto* lang = new QComboBox(code);
-    lang->addItems(backend::FeatureCatalog::codeGenerationLanguages());
-    codeLayout->addWidget(lang);
+    m_snippetLanguage = new QComboBox(code);
+    m_snippetLanguage->addItems(backend::FeatureCatalog::codeGenerationLanguages());
+    codeLayout->addWidget(m_snippetLanguage);
     m_codeSnippet = new QPlainTextEdit(code);
     m_codeSnippet->setReadOnly(true);
     codeLayout->addWidget(m_codeSnippet, 1);
-    connect(lang, &QComboBox::currentTextChanged, this, &MainWindow::updateCodeSnippet);
+    connect(m_snippetLanguage, &QComboBox::currentTextChanged, this, &MainWindow::updateCodeSnippet);
     tabs->addTab(code, QStringLiteral("Code Gen"));
 
     auto* ai = new QListWidget(tabs);
@@ -328,6 +370,8 @@ void MainWindow::connectSignals() {
     connect(m_titleBar, &TitleBar::updateRequested, this, &MainWindow::showUpdateDialog);
     connect(m_titleBar, &TitleBar::websiteRequested, this, &MainWindow::openWebsite);
     connect(m_titleBar, &TitleBar::releaseNotesRequested, this, &MainWindow::openReleaseNotes);
+    connect(m_titleBar, &TitleBar::importRequested, this, &MainWindow::importRequest);
+    connect(m_titleBar, &TitleBar::exportRequested, this, &MainWindow::exportRequest);
     connect(m_titleBar, &TitleBar::issueReportRequested, this, [this]() {
         const QUrl url = backend::IssueReporter::buildGitHubIssueUrl(
             {QStringLiteral("User-reviewed diagnostic report"),
@@ -353,6 +397,9 @@ void MainWindow::connectSignals() {
         qApp->setStyleSheet(ThemeManager::styleSheetFor(m_settings));
         appendConsole(QStringLiteral("Settings saved to TOML."));
     });
+    connect(m_method, &QComboBox::currentTextChanged, this, &MainWindow::updateCodeSnippet);
+    connect(m_url, &QLineEdit::textChanged, this, &MainWindow::updateCodeSnippet);
+    connect(m_body, &QPlainTextEdit::textChanged, this, &MainWindow::updateCodeSnippet);
     updateCodeSnippet();
 }
 
@@ -424,6 +471,64 @@ void MainWindow::openReleaseNotes() {
     QDesktopServices::openUrl(QUrl(QStringLiteral("https://github.com/muhammad-fiaz/CourierMan/releases")));
 }
 
+void MainWindow::importRequest() {
+    const QString path = QFileDialog::getOpenFileName(this,
+                                                      QStringLiteral("Import Request"),
+                                                      QString{},
+                                                      QStringLiteral("CourierMan Request (*.json);;JSON Files (*.json)"));
+    if (path.isEmpty()) {
+        return;
+    }
+
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        QMessageBox::warning(this, QStringLiteral("Import Request"), file.errorString());
+        return;
+    }
+
+    QJsonParseError error;
+    const QJsonDocument document = QJsonDocument::fromJson(file.readAll(), &error);
+    if (error.error != QJsonParseError::NoError || !document.isObject()) {
+        QMessageBox::warning(this, QStringLiteral("Import Request"), error.errorString());
+        return;
+    }
+
+    const QJsonObject object = document.object();
+    m_method->setCurrentText(object.value(QStringLiteral("method")).toString(QStringLiteral("GET")));
+    m_url->setText(object.value(QStringLiteral("url")).toString());
+    m_body->setPlainText(object.value(QStringLiteral("body")).toString());
+    populateKeyValueTable(m_headers, object.value(QStringLiteral("headers")).toArray());
+    populateKeyValueTable(m_params, object.value(QStringLiteral("queryParameters")).toArray());
+    updateCodeSnippet();
+    appendConsole(QStringLiteral("Imported request from %1").arg(path));
+}
+
+void MainWindow::exportRequest() {
+    const QString path = QFileDialog::getSaveFileName(this,
+                                                      QStringLiteral("Export Request"),
+                                                      QStringLiteral("courierman-request.json"),
+                                                      QStringLiteral("CourierMan Request (*.json);;JSON Files (*.json)"));
+    if (path.isEmpty()) {
+        return;
+    }
+
+    const auto request = collectRequest();
+    const QJsonObject object{{QStringLiteral("schema"), QStringLiteral("courierman.request.v1")},
+                             {QStringLiteral("method"), request.method},
+                             {QStringLiteral("url"), request.url},
+                             {QStringLiteral("headers"), keyValuesToJson(request.headers)},
+                             {QStringLiteral("queryParameters"), keyValuesToJson(request.queryParameters)},
+                             {QStringLiteral("body"), QString::fromUtf8(request.body)}};
+
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        QMessageBox::warning(this, QStringLiteral("Export Request"), file.errorString());
+        return;
+    }
+    file.write(QJsonDocument(object).toJson(QJsonDocument::Indented));
+    appendConsole(QStringLiteral("Exported request to %1").arg(path));
+}
+
 void MainWindow::forceQuit() {
     m_forceQuit = true;
     QApplication::quit();
@@ -457,7 +562,8 @@ void MainWindow::updateCodeSnippet() {
     request.url = url;
     request.body = m_body ? m_body->toPlainText().toUtf8() : QByteArray{};
     request.headers = m_headers ? collectRequest().headers : QList<backend::KeyValue>{};
-    const auto snippet = backend::SnippetGenerator::generate(request, QStringLiteral("cURL"));
+    const QString language = m_snippetLanguage ? m_snippetLanguage->currentText() : QStringLiteral("cURL");
+    const auto snippet = backend::SnippetGenerator::generate(request, language);
     m_codeSnippet->setPlainText(snippet ? *snippet : snippet.error());
 }
 

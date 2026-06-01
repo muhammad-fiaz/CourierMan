@@ -1,4 +1,5 @@
 #include "backend/common/SnippetGenerator.h"
+#include "backend/common/FeatureCatalog.h"
 
 #include <gtest/gtest.h>
 
@@ -24,4 +25,18 @@ TEST(SnippetGeneratorTests, RejectsUnknownLanguage) {
     const auto snippet = courierman::backend::SnippetGenerator::generate(request, QStringLiteral("BrainScript"));
 
     EXPECT_FALSE(snippet.has_value());
+}
+
+TEST(SnippetGeneratorTests, GeneratesEveryCatalogLanguage) {
+    courierman::backend::RequestDefinition request;
+    request.method = QStringLiteral("POST");
+    request.url = QStringLiteral("https://api.example.test/users");
+    request.headers.append({QStringLiteral("Authorization"), QStringLiteral("Bearer token"), true});
+    request.body = QByteArrayLiteral("{\"name\":\"Ada\"}");
+
+    for (const auto& language : courierman::backend::FeatureCatalog::codeGenerationLanguages()) {
+        const auto snippet = courierman::backend::SnippetGenerator::generate(request, language);
+        ASSERT_TRUE(snippet.has_value()) << language.toStdString();
+        EXPECT_FALSE(snippet->isEmpty());
+    }
 }
