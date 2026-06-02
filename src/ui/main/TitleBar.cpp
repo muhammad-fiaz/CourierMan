@@ -1,6 +1,7 @@
 #include "ui/main/TitleBar.h"
 
 #include "ui/shared_widgets/HoverButton.h"
+#include "ui/shared_widgets/IconFactory.h"
 
 #include <QApplication>
 #include <QDesktopServices>
@@ -24,28 +25,12 @@ TitleBar::TitleBar(QWidget* hostWindow, QWidget* parent)
     layout->setContentsMargins(10, 0, 12, 0);
     layout->setSpacing(8);
 
-    auto* leftCluster = new QWidget(this);
-    leftCluster->setObjectName(QStringLiteral("titleLeftCluster"));
-    auto* leftLayout = new QHBoxLayout(leftCluster);
-    leftLayout->setContentsMargins(0, 0, 0, 0);
-    leftLayout->setSpacing(8);
-
-    auto* logo = new QLabel(this);
-    logo->setObjectName(QStringLiteral("titleLogo"));
-    logo->setPixmap(QIcon(QStringLiteral(":/courierman/icons/logo_rounded.png")).pixmap(24, 24));
-    leftLayout->addWidget(logo);
-
     m_menuBar = new QMenuBar(this);
     m_menuBar->setNativeMenuBar(false);
     m_menuBar->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
     buildMenus();
-    leftLayout->addWidget(m_menuBar);
-    layout->addWidget(leftCluster, 1);
-
-    auto* title = new QLabel(QStringLiteral("CourierMan"), this);
-    title->setObjectName(QStringLiteral("centerTitleText"));
-    title->setAlignment(Qt::AlignCenter);
-    layout->addWidget(title, 1);
+    layout->addWidget(m_menuBar, 0);
+    layout->addStretch(1);
 
     auto* rightCluster = new QWidget(this);
     rightCluster->setObjectName(QStringLiteral("titleRightCluster"));
@@ -62,20 +47,44 @@ TitleBar::TitleBar(QWidget* hostWindow, QWidget* parent)
     m_environmentSelector->setMinimumWidth(160);
     rightLayout->addWidget(m_environmentSelector);
 
-    auto* leftToggle = new HoverButton(QStringLiteral("L"), this);
+    auto* preview = new HoverButton(QString{}, this);
+    preview->setObjectName(QStringLiteral("panelToggle"));
+    preview->setIcon(IconFactory::icon(QStringLiteral("eye")));
+    preview->setToolTip(QStringLiteral("Preview workspace"));
+    connect(preview, &QPushButton::clicked, this, &TitleBar::workspaceRequested);
+    rightLayout->addWidget(preview);
+
+    auto* settings = new HoverButton(QString{}, this);
+    settings->setObjectName(QStringLiteral("panelToggle"));
+    settings->setIcon(IconFactory::icon(QStringLiteral("settings")));
+    settings->setToolTip(QStringLiteral("Settings"));
+    connect(settings, &QPushButton::clicked, this, &TitleBar::settingsRequested);
+    rightLayout->addWidget(settings);
+
+    auto* updates = new HoverButton(QString{}, this);
+    updates->setObjectName(QStringLiteral("panelToggle"));
+    updates->setIcon(IconFactory::icon(QStringLiteral("bell")));
+    updates->setToolTip(QStringLiteral("Check for updates"));
+    connect(updates, &QPushButton::clicked, this, &TitleBar::updateRequested);
+    rightLayout->addWidget(updates);
+
+    auto* leftToggle = new HoverButton(QString{}, this);
     leftToggle->setObjectName(QStringLiteral("panelToggle"));
+    leftToggle->setIcon(IconFactory::icon(QStringLiteral("sidebar_left")));
     leftToggle->setToolTip(QStringLiteral("Toggle left sidebar"));
     connect(leftToggle, &QPushButton::clicked, this, &TitleBar::toggleLeftRequested);
     rightLayout->addWidget(leftToggle);
 
-    auto* rightToggle = new HoverButton(QStringLiteral("R"), this);
+    auto* rightToggle = new HoverButton(QString{}, this);
     rightToggle->setObjectName(QStringLiteral("panelToggle"));
+    rightToggle->setIcon(IconFactory::icon(QStringLiteral("sidebar_right")));
     rightToggle->setToolTip(QStringLiteral("Toggle right sidebar"));
     connect(rightToggle, &QPushButton::clicked, this, &TitleBar::toggleRightRequested);
     rightLayout->addWidget(rightToggle);
 
-    auto* bottomToggle = new HoverButton(QStringLiteral("C"), this);
+    auto* bottomToggle = new HoverButton(QString{}, this);
     bottomToggle->setObjectName(QStringLiteral("panelToggle"));
+    bottomToggle->setIcon(IconFactory::icon(QStringLiteral("console")));
     bottomToggle->setToolTip(QStringLiteral("Toggle bottom console"));
     connect(bottomToggle, &QPushButton::clicked, this, &TitleBar::toggleBottomRequested);
     rightLayout->addWidget(bottomToggle);
@@ -88,9 +97,9 @@ QComboBox* TitleBar::environmentSelector() const {
 
 void TitleBar::buildMenus() {
     auto* file = m_menuBar->addMenu(QStringLiteral("File"));
-    file->addAction(QStringLiteral("New Request"), this, &TitleBar::workspaceRequested);
-    file->addAction(QStringLiteral("Import"), this, &TitleBar::importRequested);
-    file->addAction(QStringLiteral("Export"), this, &TitleBar::exportRequested);
+    file->addAction(IconFactory::icon(QStringLiteral("add")), QStringLiteral("New Request"), this, &TitleBar::workspaceRequested);
+    file->addAction(IconFactory::icon(QStringLiteral("import")), QStringLiteral("Import"), this, &TitleBar::importRequested);
+    file->addAction(IconFactory::icon(QStringLiteral("export")), QStringLiteral("Export"), this, &TitleBar::exportRequested);
     file->addSeparator();
     file->addAction(QStringLiteral("Exit"), this, &TitleBar::quitRequested);
 
@@ -106,9 +115,9 @@ void TitleBar::buildMenus() {
     view->addAction(QStringLiteral("Toggle Right Sidebar"), this, &TitleBar::toggleRightRequested);
     view->addAction(QStringLiteral("Toggle Console"), this, &TitleBar::toggleBottomRequested);
 
-    auto* settings = m_menuBar->addMenu(QStringLiteral("Settings"));
-    settings->addAction(QStringLiteral("Preferences"), this, &TitleBar::settingsRequested);
-    settings->addAction(QStringLiteral("Workspace Settings"), this, &TitleBar::settingsRequested);
+    auto* settingsMenu = m_menuBar->addMenu(QStringLiteral("Settings"));
+    settingsMenu->addAction(IconFactory::icon(QStringLiteral("settings")), QStringLiteral("Preferences"), this, &TitleBar::settingsRequested);
+    settingsMenu->addAction(IconFactory::icon(QStringLiteral("environments")), QStringLiteral("Workspace Settings"), this, &TitleBar::settingsRequested);
 
     auto* help = m_menuBar->addMenu(QStringLiteral("Help"));
     help->addAction(QStringLiteral("Website"), this, &TitleBar::websiteRequested);

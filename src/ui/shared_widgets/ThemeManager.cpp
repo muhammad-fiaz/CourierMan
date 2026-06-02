@@ -282,6 +282,26 @@ QString ThemeManager::styleSheetFor(const core::AppSettings& settings) {
             border-top: 1px solid %4;
             color: %6;
         }
+
+        QProgressDialog {
+            background: %2;
+            color: %5;
+            border: 1px solid %4;
+        }
+
+        QProgressBar {
+            background: %7;
+            border: 1px solid %4;
+            border-radius: 6px;
+            color: %5;
+            min-height: 12px;
+            text-align: center;
+        }
+
+        QProgressBar::chunk {
+            background: %10;
+            border-radius: 5px;
+        }
     )QSS")
                  .arg(tokens.window,
                       tokens.surface,

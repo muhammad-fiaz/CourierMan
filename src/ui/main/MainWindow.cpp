@@ -6,6 +6,7 @@
 #include "backend/common/SnippetGenerator.h"
 #include "ui/dialogs/UpdateDialog.h"
 #include "ui/shared_widgets/HoverButton.h"
+#include "ui/shared_widgets/IconFactory.h"
 #include "ui/shared_widgets/ThemeManager.h"
 
 #include <QApplication>
@@ -132,9 +133,11 @@ void MainWindow::buildUi() {
 
     setCentralWidget(root);
     m_status = new QLabel(QStringLiteral("Ready"), this);
-    m_stats = new QLabel(QStringLiteral("Offline-first database active"), this);
+    m_statusIcon = new QLabel(this);
+    m_statusIcon->setPixmap(IconFactory::icon(QStringLiteral("online"), QColor(QStringLiteral("#22c55e"))).pixmap(14, 14));
+    m_statusIcon->setToolTip(QStringLiteral("Online"));
     statusBar()->addWidget(m_status, 1);
-    statusBar()->addPermanentWidget(m_stats);
+    statusBar()->addPermanentWidget(m_statusIcon);
 }
 
 QWidget* MainWindow::buildWorkspacePage() {
@@ -161,7 +164,7 @@ QWidget* MainWindow::buildWorkspacePage() {
     horizontal->addWidget(m_leftPanel);
     horizontal->addWidget(center);
     horizontal->addWidget(m_rightPanel);
-    horizontal->setSizes({260, 880, 300});
+    horizontal->setSizes({300, 800, 360});
 
     layout->addWidget(horizontal, 1);
     return workspace;
@@ -170,8 +173,8 @@ QWidget* MainWindow::buildWorkspacePage() {
 QWidget* MainWindow::buildLeftSidebar() {
     auto* panel = new QWidget(this);
     panel->setObjectName(QStringLiteral("leftPanel"));
-    panel->setMinimumWidth(190);
-    panel->setMaximumWidth(360);
+    panel->setMinimumWidth(260);
+    panel->setMaximumWidth(420);
     auto* layout = new QVBoxLayout(panel);
     layout->setContentsMargins(12, 12, 12, 12);
     layout->setSpacing(10);
@@ -180,30 +183,43 @@ QWidget* MainWindow::buildLeftSidebar() {
     top->addWidget(sectionTitle(QStringLiteral("Workspace"), panel));
     top->addStretch(1);
     auto* add = new HoverButton(QStringLiteral("New"), panel);
+    add->setIcon(IconFactory::icon(QStringLiteral("add")));
     connect(add, &QPushButton::clicked, this, [this]() { appendConsole(QStringLiteral("Created a new local request draft.")); });
     top->addWidget(add);
     layout->addLayout(top);
 
+    auto* searchRow = new QHBoxLayout();
+    auto* search = new QLineEdit(panel);
+    search->setPlaceholderText(QStringLiteral("Search collections"));
+    search->addAction(IconFactory::icon(QStringLiteral("search")), QLineEdit::LeadingPosition);
+    searchRow->addWidget(search, 1);
+    auto* filter = new HoverButton(QString{}, panel);
+    filter->setObjectName(QStringLiteral("panelToggle"));
+    filter->setIcon(IconFactory::icon(QStringLiteral("filter")));
+    filter->setToolTip(QStringLiteral("Filter collections"));
+    searchRow->addWidget(filter);
+    layout->addLayout(searchRow);
+
     auto* tabs = new QTabWidget(panel);
+    tabs->setUsesScrollButtons(false);
+    tabs->setDocumentMode(true);
+    tabs->setIconSize(QSize(16, 16));
     auto* collections = new QTreeWidget(tabs);
     collections->setHeaderHidden(true);
     auto* root = new QTreeWidgetItem(collections, {QStringLiteral("CourierMan Demo")});
     new QTreeWidgetItem(root, {QStringLiteral("GET Health Check")});
     new QTreeWidgetItem(root, {QStringLiteral("POST JSON Payload")});
     root->setExpanded(true);
-    tabs->addTab(collections, QStringLiteral("Collections"));
+    tabs->addTab(collections, IconFactory::icon(QStringLiteral("collections")), QStringLiteral("Collections"));
 
     auto* apis = new QListWidget(tabs);
     apis->addItems(backend::FeatureCatalog::protocolNames());
-    tabs->addTab(apis, QStringLiteral("APIs"));
+    tabs->addTab(apis, IconFactory::icon(QStringLiteral("api")), QStringLiteral("APIs"));
 
     auto* history = new QListWidget(tabs);
     history->addItem(QStringLiteral("No sent requests yet"));
-    tabs->addTab(history, QStringLiteral("History"));
+    tabs->addTab(history, IconFactory::icon(QStringLiteral("history")), QStringLiteral("History"));
 
-    auto* env = new QListWidget(tabs);
-    env->addItems({QStringLiteral("Local"), QStringLiteral("Staging"), QStringLiteral("Production")});
-    tabs->addTab(env, QStringLiteral("Environments"));
     layout->addWidget(tabs, 1);
     return panel;
 }
@@ -227,11 +243,13 @@ QWidget* MainWindow::buildRequestEditor() {
 
     auto* send = new HoverButton(QStringLiteral("Send"), editor);
     send->setObjectName(QStringLiteral("primaryButton"));
+    send->setIcon(IconFactory::icon(QStringLiteral("send"), QColor(QStringLiteral("#ffffff"))));
     connect(send, &QPushButton::clicked, this, &MainWindow::sendRequest);
     requestLine->addWidget(send);
     layout->addLayout(requestLine);
 
     auto* tabs = new QTabWidget(editor);
+    tabs->setUsesScrollButtons(false);
     m_params = new QTableWidget(tabs);
     prepareKeyValueTable(m_params);
     tabs->addTab(m_params, QStringLiteral("Params"));
@@ -270,6 +288,7 @@ QWidget* MainWindow::buildResponseViewer() {
     layout->addWidget(sectionTitle(QStringLiteral("Response"), viewer));
 
     auto* tabs = new QTabWidget(viewer);
+    tabs->setUsesScrollButtons(false);
     m_responsePretty = new QPlainTextEdit(tabs);
     m_responsePretty->setReadOnly(true);
     tabs->addTab(m_responsePretty, QStringLiteral("Pretty"));
@@ -286,17 +305,18 @@ QWidget* MainWindow::buildResponseViewer() {
 QWidget* MainWindow::buildRightSidebar() {
     auto* panel = new QWidget(this);
     panel->setObjectName(QStringLiteral("rightPanel"));
-    panel->setMinimumWidth(230);
+    panel->setMinimumWidth(320);
     panel->setMaximumWidth(420);
     auto* layout = new QVBoxLayout(panel);
     layout->setContentsMargins(12, 12, 12, 12);
 
     auto* tabs = new QTabWidget(panel);
-    auto* docs = new QListWidget(tabs);
-    for (const auto& feature : backend::FeatureCatalog::allFeatures()) {
-        docs->addItem(QStringLiteral("%1: %2").arg(feature.category, feature.name));
-    }
-    tabs->addTab(docs, QStringLiteral("Docs"));
+    tabs->setUsesScrollButtons(false);
+    tabs->setDocumentMode(true);
+    tabs->setIconSize(QSize(16, 16));
+    m_documentation = new QPlainTextEdit(tabs);
+    m_documentation->setReadOnly(true);
+    tabs->addTab(m_documentation, IconFactory::icon(QStringLiteral("docs")), QStringLiteral("Docs"));
 
     auto* code = new QWidget(tabs);
     auto* codeLayout = new QVBoxLayout(code);
@@ -307,13 +327,13 @@ QWidget* MainWindow::buildRightSidebar() {
     m_codeSnippet->setReadOnly(true);
     codeLayout->addWidget(m_codeSnippet, 1);
     connect(m_snippetLanguage, &QComboBox::currentTextChanged, this, &MainWindow::updateCodeSnippet);
-    tabs->addTab(code, QStringLiteral("Code Gen"));
+    tabs->addTab(code, IconFactory::icon(QStringLiteral("code")), QStringLiteral("Code Gen"));
 
     auto* ai = new QListWidget(tabs);
     ai->addItems({QStringLiteral("Generate tests"), QStringLiteral("Mock payloads"),
                   QStringLiteral("Infer schema"), QStringLiteral("Write documentation"),
                   QStringLiteral("Explain response"), QStringLiteral("Local offline assistant")});
-    tabs->addTab(ai, QStringLiteral("AI Tools"));
+    tabs->addTab(ai, IconFactory::icon(QStringLiteral("ai")), QStringLiteral("AI Tools"));
 
     layout->addWidget(tabs, 1);
     return panel;
@@ -321,6 +341,7 @@ QWidget* MainWindow::buildRightSidebar() {
 
 QWidget* MainWindow::buildBottomBar() {
     auto* tabs = new QTabWidget(this);
+    tabs->setUsesScrollButtons(false);
     m_console = new QPlainTextEdit(tabs);
     m_console->setReadOnly(true);
     tabs->addTab(m_console, QStringLiteral("Console"));
@@ -398,9 +419,15 @@ void MainWindow::connectSignals() {
         appendConsole(QStringLiteral("Settings saved to TOML."));
     });
     connect(m_method, &QComboBox::currentTextChanged, this, &MainWindow::updateCodeSnippet);
+    connect(m_method, &QComboBox::currentTextChanged, this, &MainWindow::updateDocumentation);
     connect(m_url, &QLineEdit::textChanged, this, &MainWindow::updateCodeSnippet);
+    connect(m_url, &QLineEdit::textChanged, this, &MainWindow::updateDocumentation);
     connect(m_body, &QPlainTextEdit::textChanged, this, &MainWindow::updateCodeSnippet);
+    connect(m_body, &QPlainTextEdit::textChanged, this, &MainWindow::updateDocumentation);
+    connect(m_params, &QTableWidget::itemChanged, this, &MainWindow::updateDocumentation);
+    connect(m_headers, &QTableWidget::itemChanged, this, &MainWindow::updateDocumentation);
     updateCodeSnippet();
+    updateDocumentation();
 }
 
 void MainWindow::sendRequest() {
@@ -411,6 +438,7 @@ void MainWindow::sendRequest() {
 }
 
 void MainWindow::handleRequestStarted() {
+    showProgress(QStringLiteral("Sending request"), QStringLiteral("Waiting for the API response..."));
     m_status->setText(QStringLiteral("Sending request..."));
     m_responsePretty->setPlainText(QStringLiteral("Loading..."));
     m_responseRaw->clear();
@@ -418,8 +446,9 @@ void MainWindow::handleRequestStarted() {
 }
 
 void MainWindow::handleResponse(const backend::ResponseEnvelope& response) {
+    hideProgress();
     m_status->setText(QStringLiteral("HTTP %1 %2").arg(response.statusCode).arg(response.reason));
-    m_stats->setText(QStringLiteral("%1 ms, %2 bytes").arg(response.elapsedMs).arg(response.body.size()));
+    m_statusIcon->setToolTip(QStringLiteral("%1 ms, %2 bytes").arg(response.elapsedMs).arg(response.body.size()));
     m_responsePretty->setPlainText(prettyJsonOrRaw(response.body));
     m_responseRaw->setPlainText(QString::fromUtf8(response.body));
 
@@ -441,6 +470,7 @@ void MainWindow::handleResponse(const backend::ResponseEnvelope& response) {
 }
 
 void MainWindow::handleRequestFailed(const QString& message) {
+    hideProgress();
     m_status->setText(QStringLiteral("Request failed"));
     appendConsole(QStringLiteral("Request failed: %1").arg(message));
 }
@@ -479,9 +509,11 @@ void MainWindow::importRequest() {
     if (path.isEmpty()) {
         return;
     }
+    showProgress(QStringLiteral("Importing request"), QStringLiteral("Reading request JSON..."));
 
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {
+        hideProgress();
         QMessageBox::warning(this, QStringLiteral("Import Request"), file.errorString());
         return;
     }
@@ -489,6 +521,7 @@ void MainWindow::importRequest() {
     QJsonParseError error;
     const QJsonDocument document = QJsonDocument::fromJson(file.readAll(), &error);
     if (error.error != QJsonParseError::NoError || !document.isObject()) {
+        hideProgress();
         QMessageBox::warning(this, QStringLiteral("Import Request"), error.errorString());
         return;
     }
@@ -501,6 +534,7 @@ void MainWindow::importRequest() {
     populateKeyValueTable(m_params, object.value(QStringLiteral("queryParameters")).toArray());
     updateCodeSnippet();
     appendConsole(QStringLiteral("Imported request from %1").arg(path));
+    hideProgress();
 }
 
 void MainWindow::exportRequest() {
@@ -511,6 +545,7 @@ void MainWindow::exportRequest() {
     if (path.isEmpty()) {
         return;
     }
+    showProgress(QStringLiteral("Exporting request"), QStringLiteral("Writing request JSON..."));
 
     const auto request = collectRequest();
     const QJsonObject object{{QStringLiteral("schema"), QStringLiteral("courierman.request.v1")},
@@ -522,11 +557,13 @@ void MainWindow::exportRequest() {
 
     QFile file(path);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        hideProgress();
         QMessageBox::warning(this, QStringLiteral("Export Request"), file.errorString());
         return;
     }
     file.write(QJsonDocument(object).toJson(QJsonDocument::Indented));
     appendConsole(QStringLiteral("Exported request to %1").arg(path));
+    hideProgress();
 }
 
 void MainWindow::forceQuit() {
@@ -565,6 +602,67 @@ void MainWindow::updateCodeSnippet() {
     const QString language = m_snippetLanguage ? m_snippetLanguage->currentText() : QStringLiteral("cURL");
     const auto snippet = backend::SnippetGenerator::generate(request, language);
     m_codeSnippet->setPlainText(snippet ? *snippet : snippet.error());
+}
+
+void MainWindow::updateDocumentation() {
+    if (m_documentation == nullptr || m_method == nullptr || m_url == nullptr) {
+        return;
+    }
+
+    const auto request = collectRequest();
+    QString text;
+    QTextStream stream(&text);
+    stream << "Request\n";
+    stream << "=======\n\n";
+    stream << request.method << " " << request.url << "\n\n";
+
+    stream << "Query Parameters\n";
+    stream << "----------------\n";
+    if (request.queryParameters.isEmpty()) {
+        stream << "No query parameters.\n";
+    } else {
+        for (const auto& item : request.queryParameters) {
+            stream << (item.enabled ? "[x] " : "[ ] ") << item.key << " = " << item.value << "\n";
+        }
+    }
+
+    stream << "\nHeaders\n";
+    stream << "-------\n";
+    if (request.headers.isEmpty()) {
+        stream << "No headers.\n";
+    } else {
+        for (const auto& item : request.headers) {
+            stream << (item.enabled ? "[x] " : "[ ] ") << item.key << ": " << item.value << "\n";
+        }
+    }
+
+    stream << "\nBody\n";
+    stream << "----\n";
+    stream << (request.body.isEmpty() ? QStringLiteral("No request body.") : QString::fromUtf8(request.body));
+    m_documentation->setPlainText(text);
+}
+
+void MainWindow::showProgress(const QString& title, const QString& message) {
+    if (m_progress == nullptr) {
+        m_progress = new QProgressDialog(this);
+        m_progress->setWindowModality(Qt::WindowModal);
+        m_progress->setCancelButton(nullptr);
+        m_progress->setMinimumDuration(0);
+        m_progress->setAutoClose(false);
+        m_progress->setAutoReset(false);
+    }
+    m_progress->setWindowTitle(title);
+    m_progress->setLabelText(message);
+    m_progress->setRange(0, 0);
+    m_progress->show();
+    qApp->processEvents(QEventLoop::ExcludeUserInputEvents);
+}
+
+void MainWindow::hideProgress() {
+    if (m_progress != nullptr) {
+        m_progress->hide();
+        m_progress->reset();
+    }
 }
 
 void MainWindow::setPanelVisible(QWidget* panel, bool visible) {

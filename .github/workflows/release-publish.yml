@@ -31,10 +31,13 @@ jobs:
       - uses: xmake-io/github-action-setup-xmake@v1
       - name: Update xrepo repositories
         run: xrepo update-repo
+      - name: Install aqtinstall from git (Qt 6.11.x fix)
+        if: runner.os != 'Linux'
+        run: pip install "aqtinstall @ git+https://github.com/miurahr/aqtinstall.git"
       - uses: jurplel/install-qt-action@v4
         if: runner.os != 'Linux'
         with:
-          version: "6.10.3"
+          version: "6.11.1"
           modules: "qt5compat"
       - name: Install Linux Qt
         if: runner.os == 'Linux'

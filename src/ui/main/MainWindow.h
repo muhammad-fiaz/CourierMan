@@ -12,6 +12,7 @@
 #include <QLineEdit>
 #include <QMainWindow>
 #include <QPlainTextEdit>
+#include <QProgressDialog>
 #include <QSplitter>
 #include <QStackedWidget>
 #include <QSystemTrayIcon>
@@ -58,6 +59,9 @@ private:
     void connectSignals();
     void appendConsole(const QString& line);
     void updateCodeSnippet();
+    void updateDocumentation();
+    void showProgress(const QString& title, const QString& message);
+    void hideProgress();
     void setPanelVisible(QWidget* panel, bool visible);
     [[nodiscard]] backend::RequestDefinition collectRequest() const;
 
@@ -81,9 +85,11 @@ private:
     QPlainTextEdit* m_responseHeaders{nullptr};
     QPlainTextEdit* m_console{nullptr};
     QPlainTextEdit* m_codeSnippet{nullptr};
+    QPlainTextEdit* m_documentation{nullptr};
     QComboBox* m_snippetLanguage{nullptr};
     QLabel* m_status{nullptr};
-    QLabel* m_stats{nullptr};
+    QLabel* m_statusIcon{nullptr};
+    QProgressDialog* m_progress{nullptr};
     QSystemTrayIcon* m_trayIcon{nullptr};
     bool m_forceQuit{false};
 };
